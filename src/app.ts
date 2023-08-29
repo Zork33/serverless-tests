@@ -1,11 +1,11 @@
-import { YCServerlessLogger } from './utils/yc-serverless-logger';
+import { YandexCloudLogger } from './utils/yandex-cloud-logger';
 
 import * as dotenv from 'dotenv';
 import { start } from 'repl';
 
 dotenv.config();
 
-const logger = new YCServerlessLogger({ showLevel: true, showTimestamp: true });
+const logger = new YandexCloudLogger({ showLevel: true, showTimestamp: true });
 
 const started: number = Date.now();
 
