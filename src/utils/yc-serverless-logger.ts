@@ -26,7 +26,7 @@ const ycServerlessLogFnBuilder = (
       //     formatParams = n
       // }
 
-      consoleOrMock.log(
+      consoleOrMock[level === 'error' ? 'error' : 'log'](
         JSON.stringify({
           ...(objOrMsg instanceof Error ? { stack: objOrMsg.stack } : objOrMsg),
           level: LEVEL,
@@ -34,7 +34,7 @@ const ycServerlessLogFnBuilder = (
         }),
       );
     } else {
-      consoleOrMock.log(
+      consoleOrMock[level === 'error' ? 'error' : 'log'](
         JSON.stringify({
           level: LEVEL,
           msg: format(objOrMsg, args),
