@@ -2,7 +2,7 @@
   "name": "nodejs-typescript-template",
   "version": "1.174.0",
   "description": "A template for a nodejs application, using typescript",
-  "main": "dist/src/index.js",
+  "main": "dist/src/build.js",
   "author": "",
   "license": "MIT",
   "scripts": {
@@ -16,7 +16,9 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "dotenv": "^16.3.1"
+    "@yandex-cloud/nodejs-sdk": "github:Zork33/nodejs-sdk#pre-fix-metadata-token-service",
+    "dotenv": "^16.3.1",
+    "quick-format-unescaped": "^4.0.4"
   },
   "devDependencies": {
     "@types/jest": "^29.5.3",
