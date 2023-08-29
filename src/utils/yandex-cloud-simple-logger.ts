@@ -8,12 +8,12 @@ const DEFAULT_LEVEL = 'info';
 const silentLogFn = () => {};
 
 const yandexCloudLogFnBuilder = (
-  level: YandexCloudLogger.LogLevel,
-): YandexCloudLogger.LogFn => {
+  level: YandexCloudSimpleLogger.LogLevel,
+): YandexCloudSimpleLogger.LogFn => {
   const LEVEL = level.toUpperCase();
 
   return function log(
-    this: YandexCloudLogger,
+    this: YandexCloudSimpleLogger,
     objOrMsg: string | unknown,
     ...args: unknown[]
   ) {
@@ -47,11 +47,11 @@ const yandexCloudLogFnBuilder = (
 /**
  * The simplest logger class, with a minimal set of logging methods and the most simple output to the console.
  */
-export class YandexCloudLogger implements YandexCloudLogger.Logger {
-  error: YandexCloudLogger.LogFn = silentLogFn;
-  warn: YandexCloudLogger.LogFn = silentLogFn;
-  info: YandexCloudLogger.LogFn = silentLogFn;
-  debug: YandexCloudLogger.LogFn = silentLogFn;
+export class YandexCloudSimpleLogger implements YandexCloudSimpleLogger.Logger {
+  error: YandexCloudSimpleLogger.LogFn = silentLogFn;
+  warn: YandexCloudSimpleLogger.LogFn = silentLogFn;
+  info: YandexCloudSimpleLogger.LogFn = silentLogFn;
+  debug: YandexCloudSimpleLogger.LogFn = silentLogFn;
 
   showTimestamp: boolean;
   showLevel: boolean;
@@ -61,7 +61,7 @@ export class YandexCloudLogger implements YandexCloudLogger.Logger {
       /**
        * Level down to which to log messages. Default is *info*.
        */
-      level?: YandexCloudLogger.LogLevel;
+      level?: YandexCloudSimpleLogger.LogLevel;
       /**
        * Whether to add the date and time to the message. Default is false.
        */
@@ -95,13 +95,13 @@ export class YandexCloudLogger implements YandexCloudLogger.Logger {
 
     level =
       envLevel !== undefined
-        ? Object.entries(YandexCloudLogger.LogLevel).find(
+        ? Object.entries(YandexCloudSimpleLogger.LogLevel).find(
             (v) => v[0] === envLevel,
           )?.[1]
-        : level ?? YandexCloudLogger.LogLevel[DEFAULT_LEVEL];
+        : level ?? YandexCloudSimpleLogger.LogLevel[DEFAULT_LEVEL];
 
-    for (const lvl of Object.values<YandexCloudLogger.LogLevel>(
-      YandexCloudLogger.LogLevel,
+    for (const lvl of Object.values<YandexCloudSimpleLogger.LogLevel>(
+      YandexCloudSimpleLogger.LogLevel,
     )) {
       this[lvl] = yandexCloudLogFnBuilder(lvl);
       if (lvl === level) break;
@@ -110,7 +110,7 @@ export class YandexCloudLogger implements YandexCloudLogger.Logger {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
-export namespace YandexCloudLogger {
+export namespace YandexCloudSimpleLogger {
   export interface LogFn {
     (obj: unknown, msg?: string, ...args: unknown[]): void;
 

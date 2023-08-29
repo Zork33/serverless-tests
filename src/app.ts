@@ -1,11 +1,14 @@
-import { YandexCloudLogger } from './utils/yandex-cloud-logger';
+import { YandexCloudSimpleLogger } from './utils/yandex-cloud-simple-logger';
 
 import * as dotenv from 'dotenv';
 import { start } from 'repl';
 
 dotenv.config();
 
-const logger = new YandexCloudLogger({ showLevel: true, showTimestamp: true });
+const logger = new YandexCloudSimpleLogger({
+  showLevel: true,
+  showTimestamp: true,
+});
 
 const started: number = Date.now();
 
