@@ -1,54 +1,25 @@
-import { YandexCloudSimpleLogger } from './utils/yandex-cloud-simple-logger';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+require('dotenv').config();
 
-import * as dotenv from 'dotenv';
-import { start } from 'repl';
+import assert from 'assert';
+import { handler, logger } from './handler';
+import {
+  HANDLER_REPEATE_INTERVAL,
+  IS_LOCAL,
+  IS_SERVERLESS,
+  logConfig,
+} from './consts';
 
-dotenv.config();
+logger.info('started');
 
-const logger = new YandexCloudSimpleLogger({
-  showLevel: true,
-  showTimestamp: true,
-});
+logConfig(logger);
 
-const started: number = Date.now();
+assert(IS_LOCAL || !IS_SERVERLESS, 'Got to be local or non-serverless run');
 
-class Interval {
-  constructor(readonly periodSecs: number) {}
+(async function doItAgain() {
+  logger.info('again');
 
-  toString() {
-    const h = Math.trunc(this.periodSecs / 60 / 60);
-    const m = Math.trunc(this.periodSecs / 60) - h * 60;
-    const s = Math.trunc(this.periodSecs % 60);
-    return `${h}h ${m}m ${s}s`;
-  }
-}
+  await handler({}, {});
 
-export const handler = async (
-  event: object,
-  context: { [key in string]: unknown },
-) => {
-  try {
-    if ((context.token as any) === undefined) {
-      throw new Error('SA is not specified for serverless function');
-    }
-
-    // TODO: Add check that SA was provided
-
-    logger.info(event, 'event');
-    logger.info(context, 'context');
-
-    logger.warn(
-      'Token TTL: %s; Time from build: %s',
-      new Interval((context.token as any).expires_in),
-      new Interval((Date.now() - started) / 1000),
-    );
-  } catch (error) {
-    logger.error(error, (error as Error).message);
-    throw error;
-  }
-
-  return {
-    statusCode: 200,
-    body: {},
-  };
-};
+  setTimeout(doItAgain, HANDLER_REPEATE_INTERVAL);
+})();
