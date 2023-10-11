@@ -1,4 +1,5 @@
 import { SimpleLogger } from 'nodejs-sdk-dev';
+import path from 'path';
 
 export const IS_LOCAL = process.env.TEST_LOCAL === '1';
 export const IS_SERVERLESS = process.env.TEST_SERVERLESS !== '0';
@@ -8,6 +9,10 @@ export const HANDLER_REPEATE_INTERVAL = 5_000;
 export const YDB_TOKEN = process.env.YDB_TOKEN;
 export const YDB_CONNECTION_STRING = process.env.YDB_CONNECTION_STRING;
 export const YDB_TIMEOUT = (process.env.YDB_TIMEOUT as string) || 15_000;
+export const YDB_CERT_FILE =
+  process.env.YDB_SSL_ROOT_CERTIFICATES_FILE ||
+  path.join(process.cwd(), 'ydb_certs/ca.pem');
+
 export const logConfig = (logger: SimpleLogger.Logger) => {
   logger.debug('IS_LOCAL: %s', IS_LOCAL);
   logger.debug('IS_SERVERLESS: %s', IS_SERVERLESS);

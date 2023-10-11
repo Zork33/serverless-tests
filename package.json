@@ -7,6 +7,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "nodemon --watch src/**/*.ts --exec ts-node src/app.ts",
+    "dev2": "nodemon --watch src/**/*.ts --exec ts-node src/app2.ts",
     "build": "tsc",
     "start": "node ./dist/app.js",
     "lint": "eslint --fix --quiet src/**/*.ts",
