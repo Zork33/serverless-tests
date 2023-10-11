@@ -121,9 +121,9 @@ export class SimpleLogger implements SimpleLogger.Logger {
     const envKey = options.envKey ?? DEFAULT_ENV_KEY;
     const envLevel = process.env[envKey];
 
-    // @ts-ignore
     level =
       envLevel !== undefined
+          // @ts-ignore
         ? SimpleLogger.LogLevel[envLevel]
         : level ?? SimpleLogger.LogLevel[DEFAULT_LEVEL];
 

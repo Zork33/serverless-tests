@@ -1,5 +1,5 @@
 import { YandexCloudSimpleLogger } from './yandex-cloud-simple-logger/src';
-import { HRInterval } from './nodejs-sdk/src/dist/utils/hr-interval';
+import { HRInterval } from './nodejs-sdk/src/utils/hr-interval';
 
 import * as dotenv from 'dotenv';
 
