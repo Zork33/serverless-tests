@@ -4,23 +4,26 @@ import {
   AnonymousAuthService,
   TokenAuthService,
   MetadataAuthService,
-  IDriverSettings, setupLogger,
+  IDriverSettings,
+  setupLogger,
 } from 'ydb-sdk';
 import {
   SimpleLogger,
   MetadataTokenService as MetadataTokenServiceNew,
   MetadataTokenService,
   TokenService,
-} from 'nodejs-sdk-dev';
-import { YandexCloudSimpleLogger } from 'yc-simple-logger';
+} from './nodejs-sdk/src';
+import { YandexCloudSimpleLogger } from './yandex-cloud-simple-logger/src';
 import {
   IS_LOCAL,
   USE_CONTEXT_TOKEN,
   USE_OLD_TOKEN_SERVICE,
   YDB_TOKEN,
   YDB_CERT_FILE,
+  APP_STARTED,
 } from './consts';
 import fs from 'fs';
+import { HRInterval } from './nodejs-sdk/src/utils/hr-interval';
 
 export const logger: SimpleLogger.Logger = IS_LOCAL
   ? new SimpleLogger()
@@ -30,9 +33,9 @@ setupLogger(logger); // TODO: Current version of YDB SDK has two points where lo
 
 const tokenService: TokenService | undefined = IS_LOCAL
   ? undefined
-  : new (USE_OLD_TOKEN_SERVICE
-      ? MetadataTokenServiceOld
-      : MetadataTokenServiceNew)({ logger, doUpdateTokenInBackground: true });
+  : USE_OLD_TOKEN_SERVICE
+  ? new MetadataTokenServiceOld()
+  : new MetadataTokenServiceNew({ logger, doUpdateTokenInBackground: true });
 
 let driver: Driver | undefined;
 
@@ -91,16 +94,13 @@ const initDriver = async () => {
       };
     }
 
-    console.info(1000, YDB_CERT_FILE, !!driverSettings.sslCredentials);
-    console.info(1010, driverSettings.connectionString);
-    console.info(1020, driverSettings.authService);
-
     driver = new Driver(driverSettings);
 
-    console.info(2000, (driver as any).database);
-    console.info(2010, (driver as any).endpoint);
-
     process.on('exit', () => {
+      logger.info(
+        'Finished. Worked %s',
+        new HRInterval(Date.now() - APP_STARTED),
+      );
       driver!.destroy();
       if (tokenService?.destroy) {
         tokenService!.destroy();

@@ -1,4 +1,4 @@
-import { SimpleLogger } from 'nodejs-sdk-dev';
+import { SimpleLogger } from './nodejs-sdk/src';
 import path from 'path';
 
 export const IS_LOCAL = process.env.TEST_LOCAL === '1';
@@ -12,6 +12,7 @@ export const YDB_TIMEOUT = (process.env.YDB_TIMEOUT as string) || 15_000;
 export const YDB_CERT_FILE =
   process.env.YDB_SSL_ROOT_CERTIFICATES_FILE ||
   path.join(process.cwd(), 'ydb_certs/ca.pem');
+export const APP_STARTED = Date.now();
 
 export const logConfig = (logger: SimpleLogger.Logger) => {
   logger.debug('IS_LOCAL: %s', IS_LOCAL);
