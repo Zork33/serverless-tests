@@ -1,120 +1,127 @@
-import { MetadataTokenService as MetadataTokenServiceOld } from '@yandex-cloud/nodejs-sdk/dist/token-service/metadata-token-service';
 import {
-  Driver,
-  AnonymousAuthService,
-  TokenAuthService,
-  MetadataAuthService,
-  IDriverSettings,
-  setupLogger,
+    MetadataTokenService as MetadataTokenServiceOld
+} from '@yandex-cloud/nodejs-sdk/dist/token-service/metadata-token-service';
+import {
+    Driver,
+    AnonymousAuthService,
+    TokenAuthService,
+    MetadataAuthService,
+    IDriverSettings,
+    setupLogger,
 } from 'ydb-sdk';
 import {
-  SimpleLogger,
-  MetadataTokenService as MetadataTokenServiceNew,
-  MetadataTokenService,
-  TokenService,
+    SimpleLogger,
+    MetadataTokenService as MetadataTokenServiceNew,
+    MetadataTokenService,
+    TokenService,
 } from './nodejs-sdk/src';
-import { YandexCloudSimpleLogger } from './yandex-cloud-simple-logger/src';
+import {YandexCloudSimpleLogger} from './yandex-cloud-simple-logger/src';
 import {
-  IS_LOCAL,
-  USE_CONTEXT_TOKEN,
-  USE_OLD_TOKEN_SERVICE,
-  YDB_TOKEN,
-  YDB_CERT_FILE,
-  APP_STARTED,
+    IS_LOCAL,
+    USE_CONTEXT_TOKEN,
+    USE_OLD_TOKEN_SERVICE,
+    YDB_TOKEN,
+    YDB_CERT_FILE,
+    APP_STARTED, IS_SERVERLESS, YDB_CONNECTION_STRING,
 } from './consts';
 import fs from 'fs';
-import { HRInterval } from './nodejs-sdk/src/utils/hr-interval';
+import {HRInterval} from './nodejs-sdk/src/utils/hr-interval';
 
 export const logger: SimpleLogger.Logger = IS_LOCAL
-  ? new SimpleLogger()
-  : new YandexCloudSimpleLogger();
+    ? new SimpleLogger()
+    : new YandexCloudSimpleLogger();
 
 setupLogger(logger); // TODO: Current version of YDB SDK has two points where logger has to be set. Whould be nice to fix that
 
 const tokenService: TokenService | undefined = IS_LOCAL
-  ? undefined
-  : USE_OLD_TOKEN_SERVICE
-  ? new MetadataTokenServiceOld()
-  : new MetadataTokenServiceNew({ logger, doUpdateTokenInBackground: true });
+    ? undefined
+    : USE_OLD_TOKEN_SERVICE
+        ? new MetadataTokenServiceOld()
+        : new MetadataTokenServiceNew({logger, doUpdateTokenInBackground: !IS_SERVERLESS});
 
 let driver: Driver | undefined;
 
 export const handler = async (
-  event: object,
-  context: { [key in string]: unknown },
+    event: object,
+    context: { [key in string]: unknown },
 ) => {
-  try {
-    if (!IS_LOCAL && !USE_OLD_TOKEN_SERVICE && USE_CONTEXT_TOKEN) {
-      (tokenService as MetadataTokenServiceNew).setIamToken(
-        context.token as MetadataTokenService.IamToken,
-      );
+    try {
+        if (!IS_LOCAL && !USE_OLD_TOKEN_SERVICE && USE_CONTEXT_TOKEN) {
+            (tokenService as MetadataTokenServiceNew).setIamToken(
+                context.token as MetadataTokenService.IamToken,
+            );
+        }
+
+        await initDriver();
+
+        // const r = await driver!.tableClient.withSession(async (session) => {
+        //     const preparedQuery = await session.prepareQuery("SELECT 1");
+        //     return await session.executeQuery(preparedQuery, {}, {
+        //         beginTx: {onlineReadOnly: {allowInconsistentReads: false}},
+        //         commitTx: true
+        //     });
+        // });
+
+        await driver!.tableClient.withSession(async (session) => {
+            await session.executeQuery('SELECT 1');
+        });
+    } catch (error) {
+        logger.error(error, (error as Error).message);
     }
 
-    await initDriver();
-
-    await driver!.tableClient.withSession(async (session) => {
-      await session.executeQuery('SELECT 1');
-    });
-  } catch (error) {
-    logger.error(error);
-  }
+    return {
+        statusCode: 200,
+        body: `Done: ${new Date}`,
+    };
 };
 
 export const destroy = async () => {
-  if (driver) {
-    await driver.destroy();
-    driver = undefined;
-  }
+    if (driver) {
+        await driver.destroy();
+        driver = undefined;
+    }
 };
 
 const initDriver = async () => {
-  if (!driver) {
-    const authService = IS_LOCAL
-      ? YDB_TOKEN
-        ? new TokenAuthService(YDB_TOKEN) // TODO: Considere adding token auth in the cloud
-        : new AnonymousAuthService()
-      : new MetadataAuthService(tokenService);
+    if (!driver) {
+        const authService =
+                YDB_TOKEN
+                ? new TokenAuthService(YDB_TOKEN) // TODO: Considere adding token auth in the cloud
+                : IS_LOCAL
+                    ? new AnonymousAuthService()
+                    : new MetadataAuthService(tokenService);
 
-    logger.debug('Init driver');
+        if (authService instanceof MetadataAuthService) {
+            (authService as any).MetadataTokenServiceClass = USE_OLD_TOKEN_SERVICE ? MetadataTokenServiceOld : MetadataTokenServiceNew; // HACK: Fixes YDB SDK bug
+        }
 
-    const driverSettings: IDriverSettings = {
-      connectionString: process.env.YDB_CONNECTION_STRING,
-      authService,
-      logger,
-    };
+        logger.debug('Init driver');
 
-    if (IS_LOCAL) {
-      if (!fs.existsSync(YDB_CERT_FILE)) {
-        throw new Error(
-          `Certificate file ${YDB_CERT_FILE} doesn't exist! Please use YDB_SSL_ROOT_CERTIFICATES_FILE env variable or run Docker container https://cloud.yandex.ru/docs/ydb/getting_started/ydb_docker inside working directory`,
+        driver = new Driver({
+            connectionString: YDB_CONNECTION_STRING,
+            authService,
+            logger,
+        });
+
+        process.on('exit', () => {
+            logger.info(
+                'Finished. Worked %s',
+                new HRInterval(Date.now() - APP_STARTED),
+            );
+            driver!.destroy();
+            if (tokenService?.destroy) {
+                tokenService!.destroy();
+            }
+        });
+
+        const ready = await driver.ready(
+          parseInt(process.env.YDB_TIMEOUT as any) || 15_000,
         );
-      }
-      driverSettings.sslCredentials = {
-        rootCertificates: fs.readFileSync(YDB_CERT_FILE),
-      };
+
+        if (!ready) {
+          return logger.error('Driver faild to initialize');
+        }
+
+        logger.debug('Driver initialized');
     }
-
-    driver = new Driver(driverSettings);
-
-    process.on('exit', () => {
-      logger.info(
-        'Finished. Worked %s',
-        new HRInterval(Date.now() - APP_STARTED),
-      );
-      driver!.destroy();
-      if (tokenService?.destroy) {
-        tokenService!.destroy();
-      }
-    });
-
-    const ready = await driver.ready(
-      parseInt(process.env.YDB_TIMEOUT as string) || 15_000,
-    );
-
-    if (!ready) {
-      return logger.error('Driver faild to initialize');
-    }
-
-    logger.debug('Driver initialized');
-  }
 };

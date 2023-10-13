@@ -14,7 +14,7 @@ logger.info('Started...');
 
 logConfig(logger);
 
-assert(IS_LOCAL || !IS_SERVERLESS, 'Got to be local or non-serverless run');
+// assert(IS_LOCAL || !IS_SERVERLESS, 'Got to be local or non-serverless run');
 
 (async function doItAgain() {
   logger.info('Once again...');

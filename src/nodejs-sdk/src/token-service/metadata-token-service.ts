@@ -169,7 +169,7 @@ export class MetadataTokenService implements TokenService {
     // even in non-debug mode output messages that we've got a new token, if there were errors before that
     this.logger[this.tokenLastError ? 'info' : 'debug'](
       Messages.debug_new_token_was_received,
-      new HRInterval(iamResponse.expires_in * 1000),
+      new HRInterval(TTL),
       TTL <= 0 ? Messages.debug_new_token_was_received_too_small_postfix : '',
     );
 

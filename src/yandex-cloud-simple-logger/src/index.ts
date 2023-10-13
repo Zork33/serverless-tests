@@ -7,6 +7,8 @@ const DEFAULT_LEVEL = 'info';
 
 const silentLogFn = () => {};
 
+const AT_LENGTH = '    at '.length;
+
 const yandexCloudLogFnBuilder = (
   level: YandexCloudSimpleLogger.LogLevel,
 ): YandexCloudSimpleLogger.LogFn => {
@@ -17,7 +19,16 @@ const yandexCloudLogFnBuilder = (
     objOrMsg: string | unknown,
     ...args: unknown[]
   ) {
-    const prefix: string[] = [];
+      if (level === 'trace') {
+          if (typeof objOrMsg !== 'object') {
+              args.unshift(objOrMsg);
+              objOrMsg = {};
+          }
+          // @ts-ignore
+          (objOrMsg as any).stack = new Error().stack.split('\n').splice(2).map(s => s.substring(AT_LENGTH));
+      }
+
+      const prefix: string[] = [];
 
     // if (this.showTimestamp) {
     //     prefix.push(new Date().toISOString());
@@ -56,11 +67,11 @@ const yandexCloudLogFnBuilder = (
         consoleOrMock.log(
           JSON.stringify({
             ...(objOrMsg instanceof Error
-              ? { stack: (objOrMsg as Error).stack }
+              ? { tack: (objOrMsg as Error).stack}
               : objOrMsg),
             level: LEVEL,
             msg: format(
-              `${prefixStr}%o`,
+              `${prefixStr}%s`,
               objOrMsg instanceof Error
                 ? (objOrMsg as Error).message
                 : objOrMsg,
@@ -178,6 +189,7 @@ export namespace YandexCloudSimpleLogger {
   }
 
   export enum LogLevel {
+    fatal = 'fatal',
     error = 'error',
     warn = 'warn',
     info = 'info',
